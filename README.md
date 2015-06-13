@@ -3,7 +3,7 @@ a targeted-sequencing CNV Calling Script written in R
 
 
 
-This file contains information for running and interpreting results from depth of coverage based CNV calling as described in Nord et al., 2011 (Pubmed ID: 21486468).  All the R scripts described are as described in the manuscript, however, no guarantees are made as to their use on other coverage data. Any questions can be sent to nordalex@uw.edu if you need using these scripts. 
+This file contains information for running and interpreting results from depth of coverage based CNV calling as described in Nord et al., 2011 (Pubmed ID: 21486468).  All the R scripts described are as described in the manuscript, however, no guarantees are made as to their use on other coverage data. Any questions can be sent to asnord@ucdavsi.edu if you need using these scripts. 
 
 There are two scripts files that are necessary:
 
