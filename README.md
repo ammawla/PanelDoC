@@ -3,7 +3,7 @@ a targeted-sequencing CNV Calling Script written in R
 
 
 
-This file contains information for running and interpreting results from depth of coverage based CNV calling as described in Nord et al., 2011 (Pubmed ID: 21486468).  All the R scripts described are as described in the manuscript, however, no guarantees are made as to their use on other coverage data. Any questions can be sent to asnord@ucdavsi.edu if you need using these scripts. 
+This file contains information for running and interpreting results from depth of coverage based CNV calling as described in Nord et al., 2011 (Pubmed ID: 21486468).  All the R scripts described are as described in the manuscript, however, no guarantees are made as to their use on other coverage data. Any questions can be sent to asnord@ucdavis.edu if you need using these scripts. 
 
 There are two scripts files that are necessary:
 
@@ -42,45 +42,45 @@ Platform Directory Files:
 Captured region bed file (CaptureRegions.bed in the sample dataset):
 This file contains the tarted regions in bed format.  All targeted bases must be within at least one row of the bed file, and no non-targeted or skipped bases must be with regions listed in this file.  For situations where multiple capture probes/oligos/regions overlap, each independent one can be listed.  For more information about the .bed format, see the UCSC genome browser.
 
-First rows:
-chr10	89617793	89617913	BI425136563_1869	1000	+
-chr10	89618163	89618283	BI425136563_1872	1000	+
-chr10	89618203	89618323	BI425136563_1873	1000	+
-chr10	89618503	89618623	BI425136563_1877	1000	+
-chr10	89619263	89619383	BI425136563_1896	1000	+
-chr10	89619063	89619183	BI425136563_1891	1000	+
+First rows:<br>
+chr10	89617793	89617913	BI425136563_1869	1000	+ <br>
+chr10	89618163	89618283	BI425136563_1872	1000	+ <br>
+chr10	89618203	89618323	BI425136563_1873	1000	+ <br>
+chr10	89618503	89618623	BI425136563_1877	1000	+ <br>
+chr10	89619263	89619383	BI425136563_1896	1000	+ <br>
+chr10	89619063	89619183	BI425136563_1891	1000	+ 
 
 Partition/Region file (Platform_partitionInformation.csv):
 This file contains the discreet regions for analysis.  In the example file, these are two genes, but they may be genomic regions.  For gene-based graphics, a RefSeq ID must be included in this file.  For CNV calling, each region is handled individually.  For exome analysis or large targeted regions with multiple neighboring genes may need to be analyzed together.  
-Fist rows:
-PartitionName,PartitionChr,PartitionStart,PartitionEnd,PartitionRefseq
-PTEN,chr10,89613195,89738532,NM_000314
-CDH1,chr16,68761195,68879444,NM_004360
+Fist rows:<br>
+PartitionName,PartitionChr,PartitionStart,PartitionEnd,PartitionRefseq<br>
+PTEN,chr10,89613195,89738532,NM_000314<br>
+CDH1,chr16,68761195,68879444,NM_004360<br>
 
 Experiment Directory Files:
 
 Sample information file (SampleInformation.csv in the sample dataset):
 This file contains general information about the samples.  The only required field is the first, with the header "Sample."  Data in this file is merged into the output files.
-First rows:
-"Sample","Lane","Index"
-"1",7,"TAGCTT"
-"2",2,"TGACCA"
-"3",4,"TGACCA"
+First rows:<br>
+"Sample","Lane","Index"<br>
+"1",7,"TAGCTT"<br>
+"2",2,"TGACCA"<br>
+"3",4,"TGACCA"<br>
 
 Known CNV file (knowncnvs.csv): 
 This contains any known CNVs, which are then removed during the normalization process.  Generally, only large CNVs need to be included here.  While this file must be present, it is usually only the header with no data.  If analysis is being performed on a sample with a known large CNV, the coordinates can be entered to increase normalization performance.
-First rows:
-SampleID,Chr,Start,End
+First rows:<br>
+SampleID,Chr,Start,End<br>
 
 Coverage files:
 These must be within a directory named "coverage" in the experiment directory.  There must be one file for each sample and region combination.  For example, if there are three genes targeted and five samples, there would be 15 files within the coverage directory.  Files must be named using the format "XXXSampleXXX_XXXRegionXXX.depth" where XXXSampleXXX is the sample ID in the sample file and XXXRegionXXX is the region ID listed in the partition information file described below.  Each targeted base must be included, or coverage for that base is assumed to be zero.
-First rows:
-ChrID	Position	Coverage
-chr16	68761817	233
-chr16	68761818	243
-chr16	68761819	246
-chr16	68761820	249
-chr16	68761821	250
+First rows: <br>
+ChrID	Position	Coverage <br>
+chr16	68761817	233<br>
+chr16	68761818	243<br>
+chr16	68761819	246<br>
+chr16	68761820	249<br>
+chr16	68761821	250<br>
 
 
 
@@ -90,64 +90,63 @@ Output Files:
 
 Output files are located in the Experiment directory listed in the parameters files.  Information about main output files:
 
-ExperimentName_QCTable.csv:  QC data for all samples
-Detailed field information:
-Sample: Sample ID	
-Coverage: Median coverage for sample	
-NormalizedCoverage: Median normalized coverage for sample
-Ratio: Median ratio for sample	
-SDCoverage: Standard deviation for raw coverage	
-SDNormalizedCoverage: Standard deviation for median coverage	
-SDRatio: Standard deviation for ratio 	
-Sample_SN_Raw: Signal to noise ratio for raw coverage(median/sd)	
-Sample_SN_Normalized: Signal to noise ratio for normalized coverage (median/sd)	
-CNV_Zscore: Number of standard deviations from median for ratio value of .5
-CNV_Count: Number of CNV calls	
-Percent10X: Percent of targeted bases with at least 10X raw coverage	
-Percent50X: Percent of targeted bases with at least 50X raw coverage
-Percent100X: Percent of targeted bases with at least 100X raw coverage
+ExperimentName_QCTable.csv:  QC data for all samples<br>
+Detailed field information:<br>
+Sample: Sample ID	<br>
+Coverage: Median coverage for sample	<br>
+NormalizedCoverage: Median normalized coverage for sample<br>
+Ratio: Median ratio for sample	<br>
+SDCoverage: Standard deviation for raw coverage	<br>
+SDNormalizedCoverage: Standard deviation for median coverage	<br>
+SDRatio: Standard deviation for ratio 	<br>
+Sample_SN_Raw: Signal to noise ratio for raw coverage(median/sd)	<br>
+Sample_SN_Normalized: Signal to noise ratio for normalized coverage (median/sd)	<br>
+CNV_Zscore: Number of standard deviations from median for ratio value of .5<br>
+CNV_Count: Number of CNV calls	<br>
+Percent10X: Percent of targeted bases with at least 10X raw coverage	<br>
+Percent50X: Percent of targeted bases with at least 50X raw coverage<br>
+Percent100X: Percent of targeted bases with at least 100X raw coverage<br>
 
 
-ExperimentName_CNVs.csv: CNV calls with parameters
-Detailed field information:
-SAMPLE_ID: sample ID (from sample information input file)
-RegionName: partition name (from partition information input file)
-chr.id: chromosome
-start:  variant start base
-end: variant end base
-class:  gain or loss
-size: variant size
-base.count:  total number targeted bases within call
-gc.content:  median GC content within call (calculated in 100bp windows from UCSC genome sequence .fa files)
-median.selfchain.count: median number of self-chains within call (from UCSC chainSelfLink.txt)
-percent.unique.sequence: percent of call not overlappin self-chains
-mean.base.spacing:  base.count/size
-base.count.criteria: number of targeted bases meeting call criteria
-merge.count: number of calls merged to make final call
-median.ratio: median relative depth of coverage ratio within call
-sd.ratio: standard deviation for relative depth of coverage ratio within call
-sn.diff.coverage: (sample coverage - experiment median coverage)/experiment median standard deviation.  This is a measure of the strength of signal from the sample normalized coverage data relative to the noise across all samples in the experiment, similar to a z-score.  Values close to 0 show little difference between the signal and noise, whereas low or high values indicate strong signal.  True positive rare CNVs should have high or low values.
-median.coverage.raw: median raw sample coverage within call
-median.coverage.normalized: median normalized sample coverage within call
-median.experiment.coverage: median raw coverage across all samples within call
-median.experiment.sd: standard deviation for coverage for all samples within call
-median.experiment.sn: signal:noise ratio (median/sd) for coverage across all samples in experiment within call.
-median.experiment.relativesn: median s:n within call/median s:n for full partition.  Values close to 1 indicate that s:n within the call is similar to overall s:n.  Low numbers  indicate lower relative s:n within call. Low numbers are more likely to be false positives.
-CopyNumber: copy number estimate (0, 1, 3, 4).  Value of 4 indicates >3 copies - not a quantitative estimate of 4 copies.
-SampleCalls: number of calls for sample
-Gene: genes overlapped by variant (from UCSC refFlat.txt)
-Refseq: refseq values matching overlapped genes (from UCSC refFlat.txt)
-Overlap: description of overlap for each gene.  5’ partial and 3’ partial indicate overlap of the 5’ or 3’ end, respectively.  Internal indicates that CNV is within gene only.  Complete indicates that CNV extends beyond gene boundaries.
-Exons: number of exons overlapped for each gene/refseq ID
+ExperimentName_CNVs.csv: CNV calls with parameters<br>
+Detailed field information:<br>
+SAMPLE_ID: sample ID (from sample information input file)<br>
+RegionName: partition name (from partition information input file)<br>
+chr.id: chromosome<br>
+start:  variant start base<br>
+end: variant end base<br>
+class:  gain or loss<br>
+size: variant size<br>
+base.count:  total number targeted bases within call<br>
+gc.content:  median GC content within call (calculated in 100bp windows from UCSC genome sequence .fa files)<br>
+median.selfchain.count: median number of self-chains within call (from UCSC chainSelfLink.txt)<br>
+percent.unique.sequence: percent of call not overlappin self-chains<br>
+mean.base.spacing:  base.count/size<br>
+base.count.criteria: number of targeted bases meeting call criteria<br>
+merge.count: number of calls merged to make final call<br>
+median.ratio: median relative depth of coverage ratio within call<br>
+sd.ratio: standard deviation for relative depth of coverage ratio within call<br>
+sn.diff.coverage: (sample coverage - experiment median coverage)/experiment median standard deviation.  This is a measure of the strength of signal from the sample normalized coverage data relative to the noise across all samples in the experiment, similar to a z-score.  Values close to 0 show little difference between the signal and noise, whereas low or high values indicate strong signal.  True positive rare CNVs should have high or low values.<br>
+median.coverage.raw: median raw sample coverage within call<br>
+median.coverage.normalized: median normalized sample coverage within call<br>
+median.experiment.coverage: median raw coverage across all samples within call<br>
+median.experiment.sd: standard deviation for coverage for all samples within call<br>
+median.experiment.sn: signal:noise ratio (median/sd) for coverage across all samples in experiment within call.<br>
+median.experiment.relativesn: median s:n within call/median s:n for full partition.  Values close to 1 indicate that s:n within the call is similar to overall s:n.  Low numbers  indicate lower relative s:n within call. Low numbers are more likely to be false positives.<br>
+CopyNumber: copy number estimate (0, 1, 3, 4).  Value of 4 indicates >3 copies - not a quantitative estimate of 4 copies.<br>
+SampleCalls: number of calls for sample<br>
+Gene: genes overlapped by variant (from UCSC refFlat.txt)<br>
+Refseq: refseq values matching overlapped genes (from UCSC refFlat.txt)<br>
+Overlap: description of overlap for each gene.  5’ partial and 3’ partial indicate overlap of the 5’ or 3’ end, respectively. <br>Internal indicates that CNV is within gene only.  Complete indicates that CNV extends beyond gene boundaries.<br>
+Exons: number of exons overlapped for each gene/refseq ID<br>
 
 
-Results folders:
-bedgraph: bedgraph format files for raw and ratio data for use with a genome browser such as UCSC.
-calls: individual output files with all CNV calls for each sample.
-normalized: normalized data for each sample and each region.  Can be used as ratio input for other segmentation algorithms.
-PDFs: graphical output for each subject and all CNV calls
-normalized.
-raw: raw coverage data for targeted regions generated from the raw input files.
+Results folders:<br>
+bedgraph: bedgraph format files for raw and ratio data for use with a genome browser such as UCSC.<br>
+calls: individual output files with all CNV calls for each sample.<br>
+normalized: normalized data for each sample and each region.  Can be used as ratio input for other segmentation algorithms.<br>
+PDFs: graphical output for each subject and all CNV calls normalized.<br>
+raw: raw coverage data for targeted regions generated from the raw input files.<br>
 
 
 
