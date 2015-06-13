@@ -41,6 +41,7 @@ Platform Directory Files:
 
 Captured region bed file (CaptureRegions.bed in the sample dataset):
 This file contains the tarted regions in bed format.  All targeted bases must be within at least one row of the bed file, and no non-targeted or skipped bases must be with regions listed in this file.  For situations where multiple capture probes/oligos/regions overlap, each independent one can be listed.  For more information about the .bed format, see the UCSC genome browser.
+
 First rows:
 chr10	89617793	89617913	BI425136563_1869	1000	+
 chr10	89618163	89618283	BI425136563_1872	1000	+
