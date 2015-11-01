@@ -2448,7 +2448,4 @@ draw.gene <- function(features, feature.start.col, feature.end.col, y.top, y.bot
 		
 		}
 	}		
-sex.chromosome <- function(sample.id, criteria,experiment.metadata ) {
-	
-	
-}
+
