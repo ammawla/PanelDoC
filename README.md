@@ -1,6 +1,6 @@
-PanelDoC v 1.1
+# PanelDoC v 1.1
 A targeted-sequencing CNV Calling Script written in R
-Authors: Alex S. Nord, Alex M. Mawla 2011-2015
+<br/>Authors: Alex S. Nord, Alex M. Mawla 2011-2015
 
 This file contains information for running and interpreting results from depth of coverage based CNV calling as described in Nord et al., 2011 (Pubmed ID: 21486468).  All the R scripts described are as described in the manuscript, however, no guarantees are made as to their use on other coverage data. Any questions can be sent to asnord@ucdavis.edu if you need using these scripts. 
 
