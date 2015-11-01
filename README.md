@@ -1,7 +1,6 @@
-# PanelDoC v 1.0
+PanelDoC v 1.1
 A targeted-sequencing CNV Calling Script written in R
-
-
+Authors: Alex S. Nord, Alex M. Mawla 2011-2015
 
 This file contains information for running and interpreting results from depth of coverage based CNV calling as described in Nord et al., 2011 (Pubmed ID: 21486468).  All the R scripts described are as described in the manuscript, however, no guarantees are made as to their use on other coverage data. Any questions can be sent to asnord@ucdavis.edu if you need using these scripts. 
 
@@ -19,7 +18,8 @@ The scripts perform a series of operations on raw coverage data:
 1.  Generate genome parameters for targeted regions (number of self chains (see UCSC for details), GC0content in 100-base window, distance from non-targeted base)
 2.  Generate median data from all samples
 3.  Normalize sample data to the median
-4.  Call CNVs based on relative depth of coverage
+4.  Normalize sample data for GC Content Bias
+5.  Call CNVs based on relative depth of coverage
 
 Note: The manuscript also describes a secondary analysis using BLAST to confirm CNV calls.  These scripts do not perform the secondary analysis.  I recommend either custom BLAST (as was described in the manuscript) or a program that performs global split-read analysis, such as SLOPE (Pubmed ID: 20876606).  
 
