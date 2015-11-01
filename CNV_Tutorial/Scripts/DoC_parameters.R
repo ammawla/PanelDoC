@@ -1,5 +1,5 @@
-### PanelDoC v 1.0 Parameters ###
-### Author: Alex S. Nord Copyright 2011-2015
+### PanelDoC v 1.1 Parameters
+### Author: Alex S. Nord, Alex M. Mawla Copyright 2011-2015
 ### Runs invariant set normalization and calls CNVs based on parameters
 #
 # Notes:
