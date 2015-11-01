@@ -1,6 +1,7 @@
-### PanelDoC v 1.0 Pipeline ###
-### Author: Alex S. Nord Copyright 2011-2015
-### Runs invariant set normalization and calls CNVs
+# PanelDoC v 1.1 
+# Authors: Alex S. Nord, Alex M. Mawla
+# Copyright 2011-2015
+
 
 ###################################################################
 ###################################################################
@@ -19,9 +20,9 @@ run.analysis <- function(criteria) {
 ### Load libraries
 	suppressPackageStartupMessages(library("genomeIntervals", logical.return=FALSE, warn.conflicts=FALSE))
 	suppressPackageStartupMessages(library("Biostrings", logical.return=FALSE, warn.conflicts=FALSE))
-#	suppressPackageStartupMessages(library("ADaCGH2", logical.return=FALSE, warn.conflicts=FALSE)) # not currently implemented in analysis
+	# not currently implemented in analysis
+#	suppressPackageStartupMessages(library("ADaCGH2", logical.return=FALSE, warn.conflicts=FALSE)) 
 	suppressPackageStartupMessages(library("mclust", logical.return=FALSE, warn.conflicts=FALSE))
-
 
 ### Read in experiment files
 	setwd(criteria$experiment.directory)
@@ -83,7 +84,7 @@ run.analysis <- function(criteria) {
 	if (criteria$generate.median == "TRUE") {generate.experiment.median(targeted.bases, experiment.metadata, criteria, exon.data)}
 	median.coverage <- load.median.data(criteria, experiment.metadata)
 	median.coverage <- merge(targeted.bases, median.coverage)
-	
+		
 ###################################################################
 ### 4: Analyze each sample                                      ###
 ###################################################################
@@ -99,7 +100,7 @@ run.analysis <- function(criteria) {
 		print(paste("Running analysis for ", sample.id, ": ", sample.index, " of ", nrow(experiment.metadata$sample.information), " Time: ", date(), sep=""))
 ### 4a: load sample data ###
 		sample.coverage <- load.coverage.data(sample.id, criteria, experiment.metadata)
-		sample.coverage <- merge(median.coverage, sample.coverage, all.x=T)
+		sample.coverage <- merge(median.coverage, sample.coverage, all.x=T, by.x=c("ChrID", "Position"), by.y=c("ChrID", "Position"))
 		sample.coverage[,"Coverage"] <- ifelse(is.na(sample.coverage[,"Coverage"]),0,sample.coverage[,"Coverage"])			
 		sample.coverage <- order.chr(sample.coverage,1,2)
 		
@@ -119,24 +120,29 @@ run.analysis <- function(criteria) {
 ### 4c: normalize vs. median using invariant set methods ###
 		normalized.coverage <- invSetNormalize(as.numeric(sample.coverage[,"Coverage"]), as.numeric(sample.coverage[,"MedianCoverage"]), last.aut, cnv.rows)
 		sd.diff.coverage <- sd(na.omit(normalized.coverage-as.numeric(sample.coverage[,"MedianCoverage"])))
-### Here is where you can add a function to nromalize based on other parameters, such as GC-content ###
 
-### 4d: generate ratio relative to median coverage ###
+### 4d: normalize vs. gc content bias ###		
+		gc.normalized.coverage <- run.coverage.correction(normalized.coverage, sample.coverage[,"GC100"], as.numeric(sample.coverage[,"BaitCoverage"]), as.numeric(sample.coverage[,"SelfChain"]), sample.coverage[,"MedianCoverage"], sample.coverage[,"SDCoverage"], as.numeric(last.aut), criteria$minimum.coverage, criteria$minimum.bait, 1, max(sample.coverage[,"MedianCoverage"]), cnv.rows)
+		normalized.coverage <-  normalized.coverage * gc.normalized.coverage[[3]]
+		
+### 4e: generate ratio relative to median coverage ###
 		ratio.normalized <- normalized.coverage/sample.coverage[,"MedianCoverage"]
 		sample.coverage <- cbind(sample.coverage, NormalizedCoverage=round(normalized.coverage,4), RatioNormalized=round(ratio.normalized,4))
 		
-### 4e: generate final coverage data and output figures ###
+### 4f: generate final coverage data and output figures ###
 		setwd(paste(criteria$experiment.directory, "PDFs", sep="/"))
-		#pdf(file=paste(sample.id, "HistogramPlot.pdf", sep="_"), width=11, height=8)
-		#par(mfrow = c(1, 3))
-		#hist(as.numeric(sample.coverage[,"Coverage"]), breaks=1000, xlim=c(0,1000), main=sample.id, xlab="Coverage")
-		#hist(as.numeric(sample.coverage[,"NormalizedCoverage"]), breaks=1000, xlim=c(0,1000), main=sample.id, xlab="NormalizedCoverage")
-		#hist(as.numeric(sample.coverage[,"RatioNormalized"]), breaks=10000, main=sample.id, xlab="RatioNormalized", xlim=c(0,2))
-		#dev.off()
+		#HERE 
+		pdf(file=paste(sample.id, "HistogramPlot.pdf", sep="_"), width=11, height=8)
+		par(mfrow = c(1, 3))
+		hist(as.numeric(sample.coverage[,"Coverage"]), breaks=1000, xlim=c(0,1000), main=sample.id, xlab="Coverage")
+		hist(as.numeric(sample.coverage[,"NormalizedCoverage"]), breaks=1000, xlim=c(0,1000), main=sample.id, xlab="NormalizedCoverage")
+		hist(as.numeric(sample.coverage[,"RatioNormalized"]), breaks=10000, main=sample.id, xlab="RatioNormalized", xlim=c(0,2))
+		dev.off()
+		#HERE
 		generate.ratio.plot(sample.id, sample.coverage, experiment.metadata, criteria)
 		write.normalized.output(sample.id, sample.coverage, criteria, experiment.metadata)
 		
-### 4f: call cnvs ###
+### 4g: call cnvs ###
 ### Note: at this point normalized ratio data has been generated and a different segmentation algorithm may be used ###
 		if (criteria$call.cnvs==TRUE) {
 			if (criteria$sample.type == "Tumor") {
@@ -153,7 +159,7 @@ run.analysis <- function(criteria) {
 			write.table(cnv.table.final, paste(criteria$experiment.name, "_CNVs.csv", sep=""), sep=",", col.names=T, row.names=F, quote=F)
 		}
 		
-### 4g: generate QC output ###
+### 4h: generate QC output ###
 		sample.raw.sn <- median(sample.coverage[,"Coverage"], na.rm=T)/sd(sample.coverage[,"Coverage"], na.rm=T)
 		sample.normalized.sn <- median(sample.coverage[,"NormalizedCoverage"], na.rm=T)/sd(sample.coverage[,"NormalizedCoverage"], na.rm=T)
 		zscore.cnv <- .5/sd(sample.coverage[,"RatioNormalized"], na.rm=T)
@@ -276,13 +282,14 @@ run.analysis <- function(criteria) {
 
 
 partition.prep <- function(criteria, experiment.metadata) {
-	for (partition.index in 1:nrow(experiment.metadata$partition.information))  {
+	for (partition.index in 1:nrow(experiment.metadata$partition.information)) {
 #		print(date())
 		partition.name <- experiment.metadata$partition.information[partition.index,1]
 		partition.chr <- experiment.metadata$partition.information[partition.index,2]
 		print(paste("Generating GC-percent and bait coverage for ", partition.name, sep=""))
 		setwd(criteria$genome.directory)
 		partition.seq <- readDNAStringSet(paste(partition.chr, ".fa", sep=""), format="fasta", use.names=FALSE)[[1]]
+	
 		partition.bait <- subset(experiment.metadata$bait.information, experiment.metadata$bait.information[,1]==as.character(partition.chr) 
 			& experiment.metadata$bait.information[,2]>=experiment.metadata$partition.information[partition.index,3]
 			& experiment.metadata$bait.information[,3]<=experiment.metadata$partition.information[partition.index,4]
@@ -312,6 +319,12 @@ partition.prep <- function(criteria, experiment.metadata) {
 		write(partition.output[[5]], paste(partition.name, ".gcpercent50", sep=""), ncolumns=1)
 		write(partition.output[[6]], paste(partition.name, ".gcpercent25", sep=""), ncolumns=1)
 		write(partition.output[[7]], paste(partition.name, ".baitcoverage", sep=""), ncolumns=1)
+		#Test
+		if (partition.index==1) {
+			overlap.positions <- partition.output[[1]]
+		} else {
+		overlap.positions <- c(overlap.positions,partition.output[[1]]) 
+		}
 	}
 	positions <- load.positions(criteria, experiment.metadata)
 	gc.content <- load.gcpercent(criteria, experiment.metadata)
@@ -436,8 +449,13 @@ interval_gc_bait_data <- function(buffered.intervals, targeted.intervals.complem
 		start <- buffered.intervals[interval.index,1]
 		end <- buffered.intervals[interval.index,2]
 		positions <- seq(start, end, 1)
+		bait.coverage <- distance_to_nearest(positions, targeted.intervals.complement)
 		min.position <- start-249
 		max.position <- end+250	
+		if (interval.index==1) {
+			start <- start-1
+		
+		}
 		gc.percent.500 <- letterFrequencyInSlidingView(
 			subseq(partition.seq,start=min.position,end=max.position), 
 			view.width=500, 
@@ -453,7 +471,7 @@ interval_gc_bait_data <- function(buffered.intervals, targeted.intervals.complem
 			OR="|"
 			)/250
 		min.position <- start-49
-		max.position <- end+50	
+		max.position <- end+50
 		gc.percent.100 <- letterFrequencyInSlidingView(
 			subseq(partition.seq,start=min.position,end=max.position), 
 			view.width=100, 
@@ -476,7 +494,7 @@ interval_gc_bait_data <- function(buffered.intervals, targeted.intervals.complem
 			letters=c("GC"), 
 			OR="|"
 			)/25	
-		bait.coverage <- distance_to_nearest(positions, targeted.intervals.complement)
+	
 		positions.final <- c(positions.final, positions)
 		gcpercent.final.500 <- c(gcpercent.final.500, gc.percent.500)
 		gcpercent.final.250 <- c(gcpercent.final.250, gc.percent.250)
@@ -485,6 +503,7 @@ interval_gc_bait_data <- function(buffered.intervals, targeted.intervals.complem
 		gcpercent.final.25 <- c(gcpercent.final.25, gc.percent.25)
 		baitcoverage.final <- c(baitcoverage.final, bait.coverage)
 		}
+
 	return(list(position=positions.final, gcPercent500=gcpercent.final.500, gcPercent250=gcpercent.final.250, gcPercent100=gcpercent.final.100, gcPercent50=gcpercent.final.50, gcPercent25=gcpercent.final.25, baitCoverage=baitcoverage.final))
 	}
 
@@ -531,12 +550,23 @@ load.positions <- function(criteria, experiment.metadata) {
 
 
 
+
+
 load.gcpercent <- function(criteria, experiment.metadata) {
 	setwd(criteria$platform.directory)
 	gc.percent <- vector(length=0)
+	positions <- vector(length=0)
+	chr <- vector(length=0)
 	for (partition.index in 1:length(experiment.metadata$partition.information$PartitionName)) {
 		partition.name <- experiment.metadata$partition.information[partition.index, "PartitionName"]
-		partition.gc <- read.table(paste(partition.name, ".gcpercent100", sep=""), header=F)
+		partition.gc <- read.table(paste(partition.name, ".gcpercent100", sep=""), header=T)
+		partition.name <- experiment.metadata$partition.information[partition.index, "PartitionName"]
+		partition.chr <- experiment.metadata$partition.information[partition.index, "PartitionChr"]
+		chr.position <- read.table(paste(partition.name, ".positions", sep=""), header=F)
+		positions <- c(positions, chr.position[,1])
+		chr.call <- rep(as.character(partition.chr), nrow(chr.position))
+		chr <- c(chr, chr.call)
+
 		gc.percent <- c(gc.percent, partition.gc[,1])
 	}
 	return(gc.percent)
@@ -834,9 +864,9 @@ load.median.data <- function(criteria, experiment.metadata) {
 
 
 generate.experiment.median <- function(targeted.bases, experiment.metadata, criteria, exon.data) {
-# run for loop covering all samples to analyze 
+# run for loop covering all samples to analyze
 	full.data <- vector("list", length=nrow(experiment.metadata$partition.information))
-	for (partition.index in 1:nrow(experiment.metadata$partition.information))  {
+	for (partition.index in 1:nrow(experiment.metadata$partition.information)) {
 		partition.name <- experiment.metadata$partition.information[partition.index,1]
 		partition.chr <- experiment.metadata$partition.information[partition.index,2]
 		partition.start <- experiment.metadata$partition.information[partition.index,3]
@@ -846,34 +876,36 @@ generate.experiment.median <- function(targeted.bases, experiment.metadata, crit
 		final.coverage <- subset(targeted.bases, targeted.bases[,"ChrID"]==partition.chr & targeted.bases[,"Position"]>=partition.start & targeted.bases[,"Position"]<=partition.end)
 		
 		print(paste("Running analysis for ", partition.name, ": ", partition.index, " of ", nrow(experiment.metadata$partition.information), sep=""))
- 
-		for (sample.index in 1:nrow(experiment.metadata$sample.information))  {
+
+		for (sample.index in 1:nrow(experiment.metadata$sample.information)) {
 			sample.id <- experiment.metadata$sample.information[sample.index,"Sample"]
 ### load sample data ###
 			setwd(paste(criteria$experiment.directory, "coverage", sep="/"))
-			sample.coverage <- read.table(paste(sample.id, "_", partition.name, ".depth", sep=""), header=T, colClasses=c("character", "integer", "integer"))
+			sample.coverage <- read.table(paste(sample.id, "_", partition.name, ".Depth", sep=""), header=T, colClasses=c("character", "integer", "integer"))
+			colnames(sample.coverage)[2] <- "Position"
 			colnames(sample.coverage)[3] <- paste(sample.id, "_Coverage", sep="")
 			sample.coverage <- subset(sample.coverage, sample.coverage[,paste(sample.id, "_Coverage", sep="")]!=0)
-			final.coverage <- merge(final.coverage, sample.coverage, all.x=T)
+			sample.coverage <- sample.coverage[,-1]
+			final.coverage <- merge(final.coverage, sample.coverage, by.x="Position", by.y="Position", all.x=T)
 			final.coverage[,3] <- ifelse(is.na(final.coverage[,3]),0,final.coverage[,3])
-			final.coverage[,paste(sample.id, "_Coverage", sep="")] <- ifelse(is.na(final.coverage[,paste(sample.id, "_Coverage", sep="")]),0,final.coverage[,paste(sample.id, "_Coverage", sep="")])			
+			final.coverage[,paste(sample.id, "_Coverage", sep="")] <- ifelse(is.na(final.coverage[,paste(sample.id, "_Coverage", sep="")]),0,final.coverage[,paste(sample.id, "_Coverage", sep="")])	
 			setwd(paste(criteria$experiment.directory, "raw", sep="/"))
 			write.table(final.coverage[,c("ChrID", "Position", paste(sample.id, "_Coverage", sep=""))], paste(sample.id, "_", partition.name, ".raw", sep=""), col.names=T, row.names=F, quote=F) 
 		}	
-		median.coverage <- apply(final.coverage[,3:ncol(final.coverage)],1,median)
-		sd.coverage <- apply(final.coverage[,3:ncol(final.coverage)],1,sd)
+		median.coverage <- as.numeric(apply(final.coverage[,3:ncol(final.coverage)],1,median))
+		sd.coverage <- as.numeric(apply(final.coverage[,3:ncol(final.coverage)],1,sd))
 		sn.coverage <- median.coverage/sd.coverage
 		median.coverage <- cbind(final.coverage[,1:2], MedianCoverage=median.coverage, SDCoverage=sd.coverage, SNCoverage=sn.coverage)
 		full.data[[partition.index]] <- median.coverage
 		setwd(paste(criteria$experiment.directory, "raw", sep="/"))
-		write.table(median.coverage, paste("Median", "_", partition.name, ".raw", sep=""), col.names=T, row.names=F)
+		write.table(median.coverage[,c(2,1,3:5)], paste("Median", "_", partition.name, ".raw", sep=""), col.names=T, row.names=F)
 		setwd(paste(criteria$experiment.directory, "PDFs", sep="/"))
-		#pdf(file=paste(partition.name, "HistogramPlot.pdf", sep="_"), width=11, height=8)
-		#par(mfrow = c(1, 3))
-		#hist(as.numeric(median.coverage[,"MedianCoverage"]), breaks=100, xlim=c(0,1000), main=partition.name, xlab="Median Coverage")
-		#hist(as.numeric(median.coverage[,"SDCoverage"]), breaks=100, xlim=c(0,500), main=partition.name, xlab="SD Coverage")
-		#hist(as.numeric(median.coverage[,"SNCoverage"]), breaks=100, main=partition.name, xlab="S:N", xlim=c(0,5))
-		#dev.off()
+		pdf(file=paste(partition.name, "HistogramPlot.pdf", sep="_"), width=11, height=8)
+		par(mfrow = c(1, 3))
+		hist(as.numeric(median.coverage[,"MedianCoverage"]), breaks=100, xlim=c(0,1000), main=partition.name, xlab="Median Coverage")
+		hist(as.numeric(median.coverage[,"SDCoverage"]), breaks=100, xlim=c(0,500), main=partition.name, xlab="SD Coverage")
+		hist(as.numeric(median.coverage[,"SNCoverage"]), breaks=100, main=partition.name, xlab="S:N", xlim=c(0,5))
+		dev.off()
 		png(file=paste(partition.name, "Coverage.png", sep="_"), width=11, height=8, units="in", res=150)
 # load in gene data for plotting
 
@@ -926,12 +958,12 @@ generate.experiment.median <- function(targeted.bases, experiment.metadata, crit
 	}
 	median.coverage <- mat.build(full.data)
 	setwd(paste(criteria$experiment.directory, "PDFs", sep="/"))
-	#pdf(file=paste("Experiment", "HistogramPlot.pdf", sep="_"), width=11, height=8)
-	#par(mfrow = c(1, 3))
-	#hist(as.numeric(median.coverage[,"MedianCoverage"]), breaks=1000, xlim=c(0,1000), main=criteria$experiment.name, xlab="Coverage")
-	#hist(as.numeric(median.coverage[,"SDCoverage"]), breaks=1000, xlim=c(0,500), main=criteria$experiment.name, xlab="SD Coverage")
-	#hist(as.numeric(median.coverage[,"SNCoverage"]), breaks=1000, main=criteria$experiment.name, xlab="S:N", xlim=c(0,10))
-	#dev.off()
+	pdf(file=paste("Experiment", "HistogramPlot.pdf", sep="_"), width=11, height=8)
+	par(mfrow = c(1, 3))
+	hist(as.numeric(median.coverage[,"MedianCoverage"]), breaks=1000, xlim=c(0,1000), main=criteria$experiment.name, xlab="Coverage")
+	hist(as.numeric(median.coverage[,"SDCoverage"]), breaks=1000, xlim=c(0,500), main=criteria$experiment.name, xlab="SD Coverage")
+	hist(as.numeric(median.coverage[,"SNCoverage"]), breaks=1000, main=criteria$experiment.name, xlab="S:N", xlim=c(0,10))
+	dev.off()
 	gene.region <- assign.region(median.coverage, experiment.metadata$partition.information)
 	gene.names <- experiment.metadata$partition.information[,"PartitionName"]
 	color.scheme <- c("blue4", "brown2", "chartreuse4", "mediumorchid3", "coral1",
@@ -1200,7 +1232,7 @@ invSetNormalize <- function(rawIntensity,rawRef,lastAuto, cnv.rows) {
 	normalized <- normalize.invariantset(logIntAuto,refAuto, prd.td=c(0.003,0.007))
 	intNorm <- log(rawIntensity+10) + log(rawRef+10) - predict(normalized$n.curve,log(rawRef+10))$y
 	data.norm <- exp(intNorm)
-} 
+}
 
 
 
@@ -1225,13 +1257,9 @@ invSetNormalize <- function(rawIntensity,rawRef,lastAuto, cnv.rows) {
 run.variant.calling <- function(sample.id, sample.coverage, criteria, experiment.metadata, exon.data) {
 	sd.diff.coverage <- sd(as.numeric(sample.coverage[,"Coverage"])-as.numeric(sample.coverage[,"MedianCoverage"]))
 	cnv.calls.partition <- vector("list", length=nrow(experiment.metadata$partition.information))
-	
 	for (partition.index in 1:nrow(experiment.metadata$partition.information)) {
 		cnv.calls.partition[[partition.index]] <- matrix(nrow=0,ncol=16)
 		}
-		
-		
-	
 	setwd(paste(criteria$experiment.directory, "PDFs", sep="/"))
 	png(file=paste(sample.id, "RatioPlots.png", sep="_"), width=8, height=2.5*nrow(experiment.metadata$partition.information), units="in", res=150)
 	par(mfrow=c(nrow(experiment.metadata$partition.information),1))
@@ -1239,11 +1267,7 @@ run.variant.calling <- function(sample.id, sample.coverage, criteria, experiment
 	#Generate Coverage QC for Original and Corrected Minimum Depth of Coverage Threshold
 	partition.qc <- matrix(NA, nrow=nrow(experiment.metadata$partition.information), ncol=7)
 		colnames(partition.qc) <- c("Partition Name", "Original Minimum Coverage Threshold", "Corrected Minimum Coverage Threshold", "Mean Coverage Threshold", "Median Coverage Threshold", "Original Percent Coverage Passing Threshold", "Corrected Percent Coverage Passing Threshold")
-		
-		partition.qc[,"Original Minimum Coverage Threshold"]=criteria$minimum.coverage
-
-		
-		 
+	partition.qc[,"Original Minimum Coverage Threshold"]=criteria$minimum.coverage
 	for (partition.index in 1:nrow(experiment.metadata$partition.information)) {
 		
 ### Run for each partition ###
@@ -1255,8 +1279,6 @@ run.variant.calling <- function(sample.id, sample.coverage, criteria, experiment
 			  sample.coverage[,"Position"]>=experiment.metadata$partition.information[partition.index,"PartitionStart"] & 
 			  sample.coverage[,"Position"]<=experiment.metadata$partition.information[partition.index,"PartitionEnd"]
 			  )
-	
-			
 		partition.qc[partition.index,"Partition Name"] <- partition.name
 		partition.qc[partition.index,"Mean Coverage Threshold"] <- round(mean(ratio.table[,"MedianCoverage"]),2)
 		partition.qc[partition.index,"Median Coverage Threshold"] <- round(median(ratio.table[,"MedianCoverage"]),2)
@@ -1269,8 +1291,6 @@ run.variant.calling <- function(sample.id, sample.coverage, criteria, experiment
 		partition.qc[partition.index,"Corrected Minimum Coverage Threshold"]=criteria$minimum.coverage
 		partition.qc[partition.index,"Corrected Percent Coverage Passing Threshold"] <- round(100*sum(ratio.table[,"MedianCoverage"]>=criteria$minimum.coverage)/nrow(ratio.table),2)
 		
-		
-			
 	# Threshold too high REMOVED 
 		ratio.table <- subset(ratio.table, 
 		as.numeric(ratio.table[,"MedianCoverage"])>=criteria$minimum.coverage & 
@@ -1356,7 +1376,8 @@ run.variant.calling <- function(sample.id, sample.coverage, criteria, experiment
 				loss.positions <- which(diploid.positions==1)
 				gain.positions <- which(diploid.positions==3)
 				diploid.positions <- which(diploid.positions==2)
-				#png(file=paste(sample.id, "_", partition.name, ".png", sep=""), width=11, height=4, units="in", res=1000)
+				#HERE
+				png(file=paste(sample.id, "_", partition.name, ".png", sep=""), width=11, height=4, units="in", res=1000)
 				if (criteria$gene.graphics==TRUE) {
 					# Add exons 
 					plot(ratio.table[,"Position"], rep(1,region.length), col="white", ylim=c(0,3.6), main=partition.name, xlab="Position", ylab="Ratio")
@@ -1381,7 +1402,8 @@ run.variant.calling <- function(sample.id, sample.coverage, criteria, experiment
 				points(ratio.table[diploid.positions,"Position"], ratio.table[diploid.positions,"RatioNormalized"], cex=.3, pch=16)
 				points(ratio.table[loss.positions,"Position"], ratio.table[loss.positions,"RatioNormalized"], cex=.3, col="red", pch=16)
 				points(ratio.table[gain.positions,"Position"], ratio.table[gain.positions,"RatioNormalized"], cex=.3, col="blue", pch=16)
-				#dev.off()
+				#HERE
+				dev.off()
 			#}
 			
 ##Output metrics ##			
