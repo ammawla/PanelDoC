@@ -1,4 +1,4 @@
-# PanelDoC v 1.1
+# PanelDoC v 1.2
 A targeted-sequencing CNV Calling Script written in R
 <br/>Authors: Alex S. Nord, Alex M. Mawla 2011-2015
 
