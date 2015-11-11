@@ -1,4 +1,4 @@
-# PanelDoC v 1.1 
+# PanelDoC v 1.2 
 # Authors: Alex S. Nord, Alex M. Mawla
 # Copyright 2011-2015
 
@@ -117,14 +117,16 @@ run.analysis <- function(criteria) {
 			}
 		}
 
+
 ### 4c: normalize vs. median using invariant set methods ###
 		normalized.coverage <- invSetNormalize(as.numeric(sample.coverage[,"Coverage"]), as.numeric(sample.coverage[,"MedianCoverage"]), last.aut, cnv.rows)
+	
+### 4d: normalize vs. gc content bias ###		
+		gc.normalized.coverage <- run.coverage.correction(normalized.coverage, sample.coverage[,"GC100"], as.numeric(sample.coverage[,"BaitCoverage"]), as.numeric(sample.coverage[,"SelfChain"]), sample.coverage[,"MedianCoverage"], sample.coverage[,"SDCoverage"], as.numeric(last.aut), criteria$minimum.coverage, criteria$minimum.bait, criteria$minimum.zscore, max(sample.coverage[,"MedianCoverage"]), cnv.rows)
+		normalized.coverage <-  normalized.coverage * gc.normalized.coverage[[3]]
+		sample.coverage[,"MedianCoverage"] <- sample.coverage[,"MedianCoverage"] * gc.normalized.coverage[[3]]
 		sd.diff.coverage <- sd(na.omit(normalized.coverage-as.numeric(sample.coverage[,"MedianCoverage"])))
 
-### 4d: normalize vs. gc content bias ###		
-		gc.normalized.coverage <- run.coverage.correction(normalized.coverage, sample.coverage[,"GC100"], as.numeric(sample.coverage[,"BaitCoverage"]), as.numeric(sample.coverage[,"SelfChain"]), sample.coverage[,"MedianCoverage"], sample.coverage[,"SDCoverage"], as.numeric(last.aut), criteria$minimum.coverage, criteria$minimum.bait, 1, max(sample.coverage[,"MedianCoverage"]), cnv.rows)
-		normalized.coverage <-  normalized.coverage * gc.normalized.coverage[[3]]
-		
 ### 4e: generate ratio relative to median coverage ###
 		ratio.normalized <- normalized.coverage/sample.coverage[,"MedianCoverage"]
 		sample.coverage <- cbind(sample.coverage, NormalizedCoverage=round(normalized.coverage,4), RatioNormalized=round(ratio.normalized,4))
@@ -902,9 +904,9 @@ generate.experiment.median <- function(targeted.bases, experiment.metadata, crit
 		setwd(paste(criteria$experiment.directory, "PDFs", sep="/"))
 		pdf(file=paste(partition.name, "HistogramPlot.pdf", sep="_"), width=11, height=8)
 		par(mfrow = c(1, 3))
-		hist(as.numeric(median.coverage[,"MedianCoverage"]), breaks=100, xlim=c(0,1000), main=partition.name, xlab="Median Coverage")
-		hist(as.numeric(median.coverage[,"SDCoverage"]), breaks=100, xlim=c(0,500), main=partition.name, xlab="SD Coverage")
-		hist(as.numeric(median.coverage[,"SNCoverage"]), breaks=100, main=partition.name, xlab="S:N", xlim=c(0,5))
+		hist(median.coverage[,"MedianCoverage"], breaks=100, xlim=c(0,1000), main=partition.name, xlab="Median Coverage")
+		hist(median.coverage[,"SDCoverage"], breaks=100, xlim=c(0,500), main=partition.name, xlab="SD Coverage")
+		hist(median.coverage[,"SNCoverage"], breaks=100, main=partition.name, xlab="S:N", xlim=c(0,5))
 		dev.off()
 		png(file=paste(partition.name, "Coverage.png", sep="_"), width=11, height=8, units="in", res=150)
 # load in gene data for plotting
@@ -1406,10 +1408,7 @@ run.variant.calling <- function(sample.id, sample.coverage, criteria, experiment
 				dev.off()
 			#}
 			
-##Output metrics ##			
-		setwd(paste(criteria$experiment.directory, "QC_Metrics", sep="/"))
-		write.table(partition.qc, paste(sample.id, "Partition_QC.csv", sep="_"), sep=",", col.names=T, row.names=F, quote=F)
-		
+
 ### Output calls ###
 			cnv.calls.partition[[partition.index]] <- data.frame(SAMPLE_ID=rep(as.character(sample.id),nrow(cnv.region.details)), RegionName=rep(as.character(partition.name),nrow(cnv.region.details)), cnv.region.details)
 		}
@@ -1418,6 +1417,12 @@ run.variant.calling <- function(sample.id, sample.coverage, criteria, experiment
 	cnv.calls <- mat.build(cnv.calls.partition)
 	cnv.calls <- data.frame(cnv.calls, SampleCalls=rep(nrow(cnv.calls), nrow(cnv.calls)))
 	cnv.calls <- unique(cnv.calls)
+	##Output metrics ##			
+		setwd(paste(criteria$experiment.directory, "QC_Metrics", sep="/"))
+		write.table(partition.qc, paste(sample.id, "Partition_QC.csv", sep="_"), sep=",", col.names=T, row.names=F, quote=F)
+			setwd(paste(criteria$experiment.directory, "PDFs", sep="/"))
+
+		
 	setwd(paste(criteria$experiment.directory, "calls", sep="/"))
 	write.table(cnv.calls, paste(sample.id, "_CNVs.csv", sep=""), sep=",", col.names=T, row.names=F, quote=F)
 	return(cnv.calls)
@@ -2448,3 +2453,7 @@ draw.gene <- function(features, feature.start.col, feature.end.col, y.top, y.bot
 		
 		}
 	}		
+sex.chromosome <- function(sample.id, criteria,experiment.metadata ) {
+	
+	
+}
