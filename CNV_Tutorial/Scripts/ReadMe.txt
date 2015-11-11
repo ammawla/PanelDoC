@@ -16,7 +16,8 @@ The scripts perform a series of operations on raw coverage data:
 1.  Generate genome parameters for targeted regions (number of self chains (see UCSC for details), GC0content in 100-base window, distance from non-targeted base)
 2.  Generate median data from all samples
 3.  Normalize sample data to the median
-4.  Call CNVs based on relative depth of coverage
+4.  Normalize sample date for gc content bias
+5.  Call CNVs based on relative depth of coverage
 
 Note: The manuscript also describes a secondary analysis using BLAST to confirm CNV calls.  These scripts do not perform the secondary analysis.  I recommend either custom BLAST (as was described in the manuscript) or a program that performs global split-read analysis, such as SLOPE (Pubmed ID: 20876606).  
 
