@@ -883,7 +883,7 @@ generate.experiment.median <- function(targeted.bases, experiment.metadata, crit
 			sample.id <- experiment.metadata$sample.information[sample.index,"Sample"]
 ### load sample data ###
 			setwd(paste(criteria$experiment.directory, "coverage", sep="/"))
-			sample.coverage <- read.table(paste(sample.id, "_", partition.name, ".Depth", sep=""), header=T, colClasses=c("character", "integer", "integer"))
+			sample.coverage <- read.table(paste(sample.id, "_", partition.name, ".depth", sep=""), header=T, colClasses=c("character", "integer", "integer"))
 			colnames(sample.coverage)[2] <- "Position"
 			colnames(sample.coverage)[3] <- paste(sample.id, "_Coverage", sep="")
 			sample.coverage <- subset(sample.coverage, sample.coverage[,paste(sample.id, "_Coverage", sep="")]!=0)
